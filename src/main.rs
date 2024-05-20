@@ -9,11 +9,11 @@ use blockdag::wallet::Wallet;
 
 #[tokio::main]
 async fn main() {
-    let dag = Arc::new(Mutex::new(BlockDAG::new()));
+    let dag = Arc::new(Mutex::new(BlockDAG::load_from_file("blockdag.json").unwrap_or_else(|_| BlockDAG::new())));
     let peers = Arc::new(Mutex::new(HashSet::new()));
     let wallet = Wallet::new();
-    let miner_address = wallet.get_address();
-    println!("Wallet Address: {}", miner_address);
+
+    println!("Wallet Address: {}", wallet.get_address());
 
     // Start the server
     let dag_server = Arc::clone(&dag);
@@ -34,19 +34,15 @@ async fn main() {
     loop {
         {
             let mut dag = dag.lock().unwrap();
-            if let Some(new_block) = dag.create_block(&miner_address) {
+            if let Some(new_block) = dag.create_block(wallet.get_address().as_str()) {
                 println!("New Block Created: {:?}", new_block);
-                dag.ghostdag(); // Update the heaviest subtree after each new block
             }
-        }
-        
-        // Check balance
-        {
-            let dag = dag.lock().unwrap();
-            let balance = dag.get_balance(&miner_address);
+            // Save the DAG state after each mined block
+            dag.save_to_file("blockdag.json").expect("Failed to save BlockDAG to file");
+            // Calculate and print balance
+            let balance = dag.get_balance(wallet.get_address().as_str());
             println!("Current Balance: {}", balance);
         }
-
         // Simulate mining time
         sleep(Duration::from_secs(1)).await;
     }

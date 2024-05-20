@@ -1,24 +1,21 @@
 // src/bin/check_balance.rs
 
 use blockdag::blockdag::BlockDAG;
-use std::sync::{Arc, Mutex};
-use std::io::{self, Write};
+use tokio::io::{self, AsyncBufReadExt, BufReader};
 
-fn main() {
-    let dag = Arc::new(Mutex::new(BlockDAG::new()));
+#[tokio::main]
+async fn main() {
+    // Load BlockDAG from file
+    let dag = BlockDAG::load_from_file("blockdag.json").expect("Failed to load BlockDAG from file");
 
-    let mut address = String::new();
-
+    // Read address from stdin
+    let mut reader = BufReader::new(io::stdin());
     println!("Enter address to check balance:");
-    io::stdin().read_line(&mut address).unwrap();
+    let mut address = String::new();
+    reader.read_line(&mut address).await.expect("Failed to read address");
+    let address = address.trim();
 
-    {
-        let dag = dag.lock().unwrap();
-        
-        // Print the DAG structure for debugging
-        dag.print_dag();
-        
-        let balance = dag.get_balance(&address.trim());
-        println!("Balance for address {}: {}", address.trim(), balance);
-    }
+    // Get balance
+    let balance = dag.get_balance(address);
+    println!("Balance for address {}: {}", address, balance);
 }

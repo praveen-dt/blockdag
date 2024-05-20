@@ -13,7 +13,9 @@ async fn main() {
 
     println!("Using Wallet Address: {}", wallet_address);
 
-    let dag = Arc::new(Mutex::new(BlockDAG::new()));
+    let dag = Arc::new(Mutex::new(
+        BlockDAG::load_from_file("blockdag.json").unwrap_or_else(|_| BlockDAG::new()),
+    ));
     let peers = Arc::new(Mutex::new(HashSet::new()));
 
     // Start the server
@@ -37,6 +39,7 @@ async fn main() {
             let mut dag = dag.lock().unwrap();
             if let Some(new_block) = dag.create_block(wallet_address) {
                 println!("New Block Created: {:?}", new_block);
+                dag.save_to_file("blockdag.json").unwrap();
             }
             // Calculate and print balance
             let balance = dag.get_balance(wallet_address);

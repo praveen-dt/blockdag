@@ -18,7 +18,7 @@ impl Wallet {
         let mut csprng = OsRng;
         let mut secret_bytes = [0u8; 32];
         csprng.fill_bytes(&mut secret_bytes);
-        
+
         let secret_key = SecretKey::from_bytes(&secret_bytes).unwrap();
         let public_key: PublicKey = (&secret_key).into();
         let keypair = Keypair { secret: secret_key, public: public_key };
@@ -35,15 +35,18 @@ impl Wallet {
         hex::encode(signature.to_bytes())
     }
 
+    pub fn sign_with_key(private_key_bytes: &[u8], message: &str) -> String {
+        let secret_key = SecretKey::from_bytes(private_key_bytes).unwrap();
+        let public_key: PublicKey = (&secret_key).into();
+        let keypair = Keypair { secret: secret_key, public: public_key };
+        let signature = keypair.sign(message.as_bytes());
+        hex::encode(signature.to_bytes())
+    }
+
     pub fn verify(public_key: &PublicKey, message: &str, signature: &str) -> bool {
         let sig_bytes = hex::decode(signature).expect("Invalid signature hex");
         let signature = Signature::from_bytes(&sig_bytes).expect("Invalid signature bytes");
         public_key.verify(message.as_bytes(), &signature).is_ok()
-    }
-    pub fn load_keypair(private_key_bytes: &[u8], public_key_bytes: &[u8]) -> Keypair {
-        let secret_key = SecretKey::from_bytes(private_key_bytes).expect("Invalid private key bytes");
-        let public_key = PublicKey::from_bytes(public_key_bytes).expect("Invalid public key bytes");
-        Keypair { secret: secret_key, public: public_key }
     }
 }
 

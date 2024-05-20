@@ -1,11 +1,15 @@
 // src/blockdag.rs
 
 use std::collections::{HashMap, HashSet};
+use serde::{Serialize, Deserialize};
 use crate::block::Block;
 use crate::transaction::Transaction;
 use crate::wallet::Wallet;
 use crate::constants::{INITIAL_BLOCK_REWARD, HALVING_INTERVAL, TARGET_BLOCK_TIME, DIFFICULTY_ADJUSTMENT_INTERVAL, TOTAL_SUPPLY};
+use std::fs::File;
+use std::io::{Read, Write};
 
+#[derive(Serialize, Deserialize)]
 pub struct BlockDAG {
     pub blocks: HashMap<String, Block>,
     pub tips: Vec<String>,
@@ -35,6 +39,21 @@ impl BlockDAG {
             block_count: 1, // Start with the genesis block
             current_block_reward: INITIAL_BLOCK_REWARD,
         }
+    }
+
+    pub fn load_from_file(filename: &str) -> Result<BlockDAG, std::io::Error> {
+        let mut file = File::open(filename)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        let blockdag: BlockDAG = serde_json::from_str(&contents)?;
+        Ok(blockdag)
+    }
+
+    pub fn save_to_file(&self, filename: &str) -> Result<(), std::io::Error> {
+        let contents = serde_json::to_string_pretty(self)?;
+        let mut file = File::create(filename)?;
+        file.write_all(contents.as_bytes())?;
+        Ok(())
     }
 
     pub fn add_transaction(&mut self, transaction: Transaction) {
@@ -215,12 +234,12 @@ impl BlockDAG {
     pub fn get_balance(&self, address: &str) -> u64 {
         let mut balance = 0;
         for block in self.blocks.values() {
-            for tx in &block.transactions {
-                if tx.receiver == address {
-                    balance += tx.amount;
+            for transaction in &block.transactions {
+                if transaction.receiver == address {
+                    balance += transaction.amount;
                 }
-                if tx.sender == address {
-                    balance -= tx.amount;
+                if transaction.sender == address {
+                    balance -= transaction.amount;
                 }
             }
         }
