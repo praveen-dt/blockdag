@@ -41,7 +41,7 @@ impl BlockDAG {
         self.pending_transactions.push(transaction);
     }
 
-    pub fn create_block(&mut self) -> Option<Block> {
+    pub fn create_block(&mut self, miner_address: &str) -> Option<Block> {
         if self.current_supply >= TOTAL_SUPPLY {
             println!("Total supply reached. No more blocks can be created.");
             return None;
@@ -50,8 +50,14 @@ impl BlockDAG {
         let previous_hashes = self.tips.clone();
         let index = self.blocks.len() as u64;
         let transactions = self.pending_transactions.clone();
+
+        // Add the mining reward transaction
         let reward = std::cmp::min(self.current_block_reward, TOTAL_SUPPLY - self.current_supply);
-        let new_block = Block::new(index, previous_hashes.clone(), transactions.clone(), reward, None, self.difficulty);
+        let reward_transaction = Transaction::new("0000000000000000000000000000000000000000000000000000000000000000".to_string(), miner_address.to_string(), reward, "".to_string());
+        let mut block_transactions = transactions;
+        block_transactions.push(reward_transaction);
+
+        let new_block = Block::new(index, previous_hashes.clone(), block_transactions, reward, None, self.difficulty);
         let new_hash = new_block.hash.clone();
 
         // Validate the new block
@@ -104,6 +110,11 @@ impl BlockDAG {
 
         // Validate transactions (simplified for this example)
         for tx in &block.transactions {
+            // Skip validation for mining reward transaction
+            if tx.sender == "0000000000000000000000000000000000000000000000000000000000000000" {
+                continue;
+            }
+
             let sender_pub_key = hex::decode(&tx.sender).expect("Invalid sender hex");
             let public_key = ed25519_dalek::PublicKey::from_bytes(&sender_pub_key).expect("Invalid public key bytes");
             if !Wallet::verify(&public_key, &tx.calculate_hash(), &tx.signature) {
@@ -202,6 +213,20 @@ impl BlockDAG {
 
         weights.insert(hash.clone(), weight);
         weight
+    }
+
+    pub fn calculate_balance(&self, address: &str) -> u64 {
+        let mut balance = 0;
+        for block in self.blocks.values() {
+            for transaction in &block.transactions {
+                if transaction.receiver == address {
+                    balance += transaction.amount;
+                } else if transaction.sender == address {
+                    balance -= transaction.amount;
+                }
+            }
+        }
+        balance
     }
 
     pub fn display(&self) {

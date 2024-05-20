@@ -12,8 +12,9 @@ async fn main() {
     let dag = Arc::new(Mutex::new(BlockDAG::new()));
     let peers = Arc::new(Mutex::new(HashSet::new()));
     let wallet = Wallet::new();
+    let wallet_address = wallet.get_address();
 
-    println!("Wallet Address: {}", wallet.get_address());
+    println!("Wallet Address: {}", wallet_address);
 
     // Start the server
     let dag_server = Arc::clone(&dag);
@@ -34,9 +35,15 @@ async fn main() {
     loop {
         {
             let mut dag = dag.lock().unwrap();
-            if let Some(new_block) = dag.create_block() {
+            if let Some(new_block) = dag.create_block(&wallet_address) {
                 println!("New Block Created: {:?}", new_block);
             }
+        }
+        // Display the current balance
+        {
+            let dag = dag.lock().unwrap();
+            let balance = dag.calculate_balance(&wallet_address);
+            println!("Current Balance: {}", balance);
         }
         // Simulate mining time
         sleep(Duration::from_secs(1)).await;
