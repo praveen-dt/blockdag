@@ -1,19 +1,20 @@
-// src/main.rs
+// src/bin/miner.rs
 
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 use tokio::time::{sleep, Duration};
 use blockdag::blockdag::BlockDAG;
 use blockdag::network::{start_server, connect_to_server};
-use blockdag::wallet::Wallet;
 
 #[tokio::main]
 async fn main() {
+    // Hard-coded wallet address
+    let wallet_address = "7bf2b2f920a612a724a490b7b2dbea0199f8ae4fa3f595a930cf5f4c0d446308";
+
+    println!("Using Wallet Address: {}", wallet_address);
+
     let dag = Arc::new(Mutex::new(BlockDAG::new()));
     let peers = Arc::new(Mutex::new(HashSet::new()));
-    let wallet = Wallet::new();
-    let miner_address = wallet.get_address();
-    println!("Wallet Address: {}", miner_address);
 
     // Start the server
     let dag_server = Arc::clone(&dag);
@@ -34,19 +35,13 @@ async fn main() {
     loop {
         {
             let mut dag = dag.lock().unwrap();
-            if let Some(new_block) = dag.create_block(&miner_address) {
+            if let Some(new_block) = dag.create_block(wallet_address) {
                 println!("New Block Created: {:?}", new_block);
-                dag.ghostdag(); // Update the heaviest subtree after each new block
             }
-        }
-        
-        // Check balance
-        {
-            let dag = dag.lock().unwrap();
-            let balance = dag.get_balance(&miner_address);
+            // Calculate and print balance
+            let balance = dag.get_balance(wallet_address);
             println!("Current Balance: {}", balance);
         }
-
         // Simulate mining time
         sleep(Duration::from_secs(1)).await;
     }

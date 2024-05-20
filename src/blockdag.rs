@@ -53,7 +53,7 @@ impl BlockDAG {
 
         // Add the mining reward transaction
         let reward = std::cmp::min(self.current_block_reward, TOTAL_SUPPLY - self.current_supply);
-        let reward_transaction = Transaction::new("0000000000000000000000000000000000000000000000000000000000000000".to_string(), miner_address.to_string(), reward, "".to_string());
+        let reward_transaction = Transaction::new("0".to_string(), miner_address.to_string(), reward, 0, "".to_string());
         let mut block_transactions = transactions;
         block_transactions.push(reward_transaction);
 
@@ -110,15 +110,12 @@ impl BlockDAG {
 
         // Validate transactions (simplified for this example)
         for tx in &block.transactions {
-            // Skip validation for mining reward transaction
-            if tx.sender == "0000000000000000000000000000000000000000000000000000000000000000" {
-                continue;
-            }
-
-            let sender_pub_key = hex::decode(&tx.sender).expect("Invalid sender hex");
-            let public_key = ed25519_dalek::PublicKey::from_bytes(&sender_pub_key).expect("Invalid public key bytes");
-            if !Wallet::verify(&public_key, &tx.calculate_hash(), &tx.signature) {
-                return false;
+            if tx.sender != "0" {
+                let sender_pub_key = hex::decode(&tx.sender).expect("Invalid sender hex");
+                let public_key = ed25519_dalek::PublicKey::from_bytes(&sender_pub_key).expect("Invalid public key bytes");
+                if !Wallet::verify(&public_key, &tx.calculate_hash(), &tx.signature) {
+                    return false;
+                }
             }
         }
 
@@ -215,14 +212,15 @@ impl BlockDAG {
         weight
     }
 
-    pub fn calculate_balance(&self, address: &str) -> u64 {
+    pub fn get_balance(&self, address: &str) -> u64 {
         let mut balance = 0;
         for block in self.blocks.values() {
-            for transaction in &block.transactions {
-                if transaction.receiver == address {
-                    balance += transaction.amount;
-                } else if transaction.sender == address {
-                    balance -= transaction.amount;
+            for tx in &block.transactions {
+                if tx.receiver == address {
+                    balance += tx.amount;
+                }
+                if tx.sender == address {
+                    balance -= tx.amount;
                 }
             }
         }

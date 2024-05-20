@@ -40,6 +40,11 @@ impl Wallet {
         let signature = Signature::from_bytes(&sig_bytes).expect("Invalid signature bytes");
         public_key.verify(message.as_bytes(), &signature).is_ok()
     }
+    pub fn load_keypair(private_key_bytes: &[u8], public_key_bytes: &[u8]) -> Keypair {
+        let secret_key = SecretKey::from_bytes(private_key_bytes).expect("Invalid private key bytes");
+        let public_key = PublicKey::from_bytes(public_key_bytes).expect("Invalid public key bytes");
+        Keypair { secret: secret_key, public: public_key }
+    }
 }
 
 // Custom serialization and deserialization for Wallet

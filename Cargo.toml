@@ -14,3 +14,28 @@ ed25519-dalek = "1.0"
 
 rand_core = "0.6.0" # Ensure this version or higher
 rand_chacha = "0.3"
+
+
+[lib]
+name = "blockdag"
+path = "src/lib.rs"
+
+[[bin]]
+name = "blockdag"
+path = "src/main.rs"
+
+[[bin]]
+name = "miner"
+path = "src/miner.rs"
+
+[[bin]]
+name = "generate_address"
+path = "src/bin/generate_address.rs"
+
+[[bin]]
+name = "send_transaction"
+path = "src/bin/send_transaction.rs"
+
+[[bin]]
+name = "check_balance"
+path = "src/bin/check_balance.rs"
